@@ -54,11 +54,13 @@ exports.createOrder = async (req, res) => {
     // Sauvegarder la commande dans la base de données
     const savedOrder = await newOrder.save();
 
+    const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:8000';
+    
     console.log('Commande sauvegardée :', savedOrder);
 
     // Appel au micro-service de notification
     try {
-      await axios.post('http://localhost:8000/notify', {
+      await axios.post(`${GATEWAY_URL}/notify`, {
         to: 'syaob@yahoo.fr',
         subject: 'Nouvelle Commande Créée',
         text: `Une commande a été créée avec succès pour les produits suivants : \n${orderDetails
