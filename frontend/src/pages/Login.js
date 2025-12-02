@@ -9,12 +9,12 @@ const Login = () => {
     password: "",
   });
   const navigate = useNavigate();
-
-  const handleSubmit = async (e) => {
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+ const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API_URL}/api/auth/login`,
         credentials
       );
       const { token, role, username } = response.data;
