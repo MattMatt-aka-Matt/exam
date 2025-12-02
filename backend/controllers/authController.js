@@ -1,70 +1,107 @@
 // backend/controllers/authController.js
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../models/User'); // modèle utilisateur
+const User = require('../models/User');
+const { registerSchema, loginSchema } = require('../validators/authValidator');
+const logger = require('../logger');
 require('dotenv').config();
-const axios = require('axios');
-const authLog = require('debug')('authRoutes:console')
-//const sendEmail = require('../services/emailService');
 
 exports.login = async (req, res) => {
-  const { username, password } = req.body;
-  authLog(`username is ${username} password is ${password}`);
+  // Validation Joi
+  const { error } = loginSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
 
+  const { username, password } = req.body;
 
   try {
     const user = await User.findOne({ username });
-    authLog(`user is ${JSON.stringify(user)}`)
-    if (!user) return res.status(400).json({ message: 'Utilisateur non trouvé' });
+    if (!user) {
+      return res.status(400).json({ message: 'Identifiants incorrects' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Mot de passe incorrect' });
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Identifiants incorrects' });
+    }
 
-    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    authLog(`token is ${token}`)
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
+    logger.info(`Connexion réussie: ${username}`);
     res.json({ token, role: user.role, username: user.username });
   } catch (error) {
+    logger.error(`Erreur login: ${error.message}`);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
-
 exports.register = async (req, res) => {
+  // Validation Joi
+  const { error } = registerSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+
   const { username, email, password } = req.body;
-  authLog(`username is ${username} email is ${email} password is ${password}`);
 
   try {
-    // Vérifier si l'email ou le nom d'utilisateur existe déjà
-    const existingUser = await User.findOne({ email });
-    
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
-      authLog(`user exist => ${JSON.stringify(existingUser)}`)
-      return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+      return res.status(400).json({ message: 'Cet email ou nom d\'utilisateur existe déjà.' });
     }
 
-    // Créer un nouvel utilisateur
     const user = new User({ username, email, password });
     await user.save();
 
-    authLog(`user after creation => ${JSON.stringify(user)}`)
-
-    // Envoyer un email de bienvenue
-    // await sendEmail(
-    //   email,
-    //   'Bienvenue dans notre application',
-    //   `Bonjour ${username},\n\nMerci de vous être inscrit. Nous sommes ravis de vous accueillir !`
-    // );
-
-    // await axios.post('http://localhost:4002/notify', {
-    //   to: email,
-    //   subject: 'Bienvenue dans notre application',
-    //   text: `Bonjour ${username},\n\nMerci de vous être inscrit. Nous sommes ravis de vous accueillir !`,
-    // });
-
+    logger.info(`Nouvel utilisateur créé: ${username}`);
     res.status(201).json({ message: 'Utilisateur créé avec succès.' });
   } catch (error) {
-    console.error('Erreur lors de l\'inscription', error);
+    logger.error(`Erreur inscription: ${error.message}`);
     res.status(500).json({ message: 'Une erreur est survenue.' });
+  }
+};
+
+// Ajouter ces fonctions à la fin du fichier
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Supprimer l'utilisateur
+    await User.findByIdAndDelete(userId);
+    
+    // Supprimer ses commandes (optionnel selon RGPD)
+    const Order = require('../models/Order');
+    await Order.deleteMany({ userId });
+    
+    logger.info(`Compte supprimé: ${userId}`);
+    res.json({ message: 'Compte supprimé avec succès' });
+  } catch (error) {
+    logger.error(`Erreur suppression compte: ${error.message}`);
+    res.status(500).json({ message: 'Erreur lors de la suppression' });
+  }
+};
+
+exports.exportData = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    const user = await User.findById(userId).select('-password');
+    const Order = require('../models/Order');
+    const orders = await Order.find({ userId });
+    
+    res.json({
+      user,
+      orders,
+      exportDate: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`Erreur export données: ${error.message}`);
+    res.status(500).json({ message: 'Erreur lors de l\'export' });
   }
 };

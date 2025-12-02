@@ -1,65 +1,50 @@
 // src/App.js
 import React from 'react';
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProductList from './pages/ProductList';
 import Cart from './pages/Cart';
-import Order from './pages/Order';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Order from './pages/Order';
 import Admin from './pages/Admin';
+import ShippingPayment from './pages/ShippingPayment';
+import { CartProvider } from './context/CartContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
-import ShippingPayment from './pages/ShippingPayment';
+// Nouvelles pages RGPD
+import Privacy from './pages/Privacy';
+import Legal from './pages/Legal';
+import Terms from './pages/Terms';
+import NotFound from './pages/NotFound';
+import Profile from './pages/Profile';
+import CookieBanner from './components/CookieBanner.js';
 
-// Layout principal avec Navbar et Outlet
-const MainLayout = () => (
-  <>
-    <Navbar />
-    <main className="p-4">
-      <Outlet />
-    </main>
-  </>
-);
-
-// Définition des routes avec le MainLayout
-const router = createBrowserRouter([
-  {
-    path: '/',
-    element: <MainLayout />,
-    children: [
-      {
-        path: '',
-        element: <ProductList />,
-      },
-      {
-        path: 'login',
-        element: <Login />,
-      },
-      {
-        path: 'register',
-        element: <Register />,
-      },
-      {
-        path: 'shippig_payment',
-        element: <ShippingPayment />,
-      },
-      {
-        path: 'cart',
-        element: <Cart />,
-      },
-      {
-        path: 'order',
-        element: <ProtectedRoute><Order /></ProtectedRoute>,
-      },
-      {
-        path: 'admin',
-        element: <AdminRoute><Admin /></AdminRoute>,
-      },
-    ],
-  },
-]);
-
-const App = () => <RouterProvider router={router} />;
+function App() {
+  return (
+    <CartProvider>
+      <Router>
+        <Navbar />
+        <CookieBanner />
+        <Routes>
+          <Route path="/" element={<ProductList />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/order" element={<ProtectedRoute><Order /></ProtectedRoute>} />
+          <Route path="/shipping-payment" element={<ProtectedRoute><ShippingPayment /></ProtectedRoute>} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          {/* Pages RGPD */}
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/legal" element={<Legal />} />
+          <Route path="/terms" element={<Terms />} />
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </CartProvider>
+  );
+}
 
 export default App;

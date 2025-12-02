@@ -64,5 +64,13 @@ const seedProducts = async () => {
   }
 };
 
+const adminUser = {
+  name: "Admin",
+  email: "admin@test.com",
+  password: await bcrypt.hash("admin123", 10),
+  role: "admin"
+};
+await User.create(adminUser);
+
 // Lancer le seed
 seedProducts();
