@@ -28,7 +28,10 @@ app.use('/api/auth', limiter);
 
 // 🔒 Sécurité : CORS restrictif
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true,
   optionsSuccessStatus: 200
 };
