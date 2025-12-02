@@ -2,10 +2,11 @@
 const axios = require('axios');
 const Order = require('../models/Order');
 const orderLog = require('debug')('orderRoutes:console')
+const logger = require('../logger');
 
 
 exports.createOrder = async (req, res) => {
-  console.log(`user is in createOrder ${JSON.stringify(req.user)}`)
+  logger.info(`Création commande - User: ${req.user.userId}`);
   const { items, shippingAddress, paymentMethod, shippingMethod, } = req.body;
   console.log(`items are ${JSON.stringify(req.body)}`)
   let userId = req.user.userId;
@@ -64,7 +65,7 @@ exports.createOrder = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erreur lors de la création de la commande', error);
+    logger.error(`Erreur création commande: ${error.message}`);
     res.status(500).json({
       message: 'Une erreur est survenue lors de la création de la commande.',
     });
