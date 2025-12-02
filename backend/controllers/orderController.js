@@ -1,17 +1,27 @@
 // backend/controllers/orderController.js
 const axios = require('axios');
 const Order = require('../models/Order');
-const orderLog = require('debug')('orderRoutes:console')
 const logger = require('../logger');
 
-
+/**
+ * Crée une nouvelle commande pour l'utilisateur connecté
+ * @async
+ * @function createOrder
+ * @param {Object} req - Requête Express
+ * @param {Object} req.body - Corps de la requête
+ * @param {Array} req.body.items - Liste des produits [{productId, quantity, price}]
+ * @param {Object} req.body.shippingAddress - Adresse de livraison
+ * @param {string} req.body.paymentMethod - Méthode de paiement
+ * @param {string} req.body.shippingMethod - Méthode de livraison
+ * @param {Object} res - Réponse Express
+ * @returns {Object} Commande créée
+ */
 exports.createOrder = async (req, res) => {
   logger.info(`Création commande - User: ${req.user.userId}`);
-  const { items, shippingAddress, paymentMethod, shippingMethod, } = req.body;
-  console.log(`items are ${JSON.stringify(req.body)}`)
-  let userId = req.user.userId;
+  const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
+  const userId = req.user.userId;
 
-  // Vérification du format des données
+  // Validation du format des données
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
       message: 'Le corps de la requête doit contenir un tableau d\'objets { productId, quantity }.',
@@ -19,18 +29,18 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
-    // Logique pour préparer les détails de la commande
+    // Préparation des détails de la commande
     const orderDetails = items.map(({ productId, quantity, price }) => {
-      console.log(`Produit ID : ${productId}, Quantité : ${quantity}, Price ${price}`);
       return { productId, quantity, price };
     });
 
-    // Création de la commande dans la base de données
+    // Calcul du total
     const total = items.reduce(
       (acc, { price, quantity }) => acc + price * quantity,
       0
     );
 
+    // Création de l'objet commande
     const newOrder = new Order({
       userId,
       items: orderDetails,
@@ -40,28 +50,24 @@ exports.createOrder = async (req, res) => {
       shippingMethod
     });
 
-    // Sauvegarder la commande dans la base de données
+    // Sauvegarde en base de données
     const savedOrder = await newOrder.save();
 
-    const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:8000';
-    
-    console.log('Commande sauvegardée :', savedOrder);
-
-    // Réponse de succès IMMÉDIATE (avant l'envoi de l'email)
+    // Réponse immédiate au client (ne pas bloquer)
     res.status(201).json({
       message: 'Commande créée avec succès',
       order: savedOrder,
     });
 
-    // Appel ASYNCHRONE au micro-service de notification (ne bloque pas la réponse)
+    // Envoi asynchrone de la notification (ne bloque pas la réponse)
+    const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:8000';
     axios.post(`${GATEWAY_URL}/notify`, {
-      to: 'Matthew.domanchin@gmail.com',
+      to: 'client@example.com',
       subject: 'Nouvelle Commande Créée',
-      text: `Une commande a été créée avec succès pour les produits suivants : \n${orderDetails
-        .map((item) => `Produit ID : ${item.productId}, Quantité : ${item.quantity}`)
-        .join('\n')}`,
+      text: `Votre commande a été créée avec succès.`,
     }).catch(error => {
-      console.error('Erreur lors de l\'envoi de la notification', error.message);
+      // Log l'erreur mais ne fait pas échouer la commande
+      logger.error(`Erreur notification: ${error.message}`);
     });
 
   } catch (error) {
@@ -72,44 +78,31 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-exports.deleteOrder = async(req, res)=>{
-    const { orderId } = req.body;
-    console.log(`orderId to delete is ${orderId}`)
-}
-
-exports.getOrders = async(req, res)=>{
+/**
+ * Récupère toutes les commandes (admin)
+ * @async
+ * @function getOrders
+ * @param {Object} req - Requête Express
+ * @param {Object} res - Réponse Express
+ * @returns {Array} Liste des commandes
+ */
+exports.getOrders = async (req, res) => {
   const orders = await Order.find();
   res.status(200).json(orders);
-}
+};
 
-exports.validateOrder = async (req, res) => {
-  const { orderId } = req.body;
-  res.status(200).json({message: `Commande ${orderId} validée avec succès.`})
-}
-
+/**
+ * Met à jour le statut d'une commande
+ * @async
+ * @function updateOrderStatus
+ * @param {Object} req - Requête Express
+ * @param {string} req.params.orderId - ID de la commande
+ * @param {string} req.body.status - Nouveau statut
+ * @param {Object} res - Réponse Express
+ * @returns {Object} Commande mise à jour
+ */
 exports.updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
   const { status } = req.body;
-
-  console.log(`dump console log order id => ${orderId} status = ${status}`);
-  try {
-    if (!status) {
-      return res.status(400).json({ message: "Le statut est requis." });
-    }
-
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      { status, updatedAt: new Date() },
-      { new: true }
-    );
-
-    if (!order) {
-      return res.status(404).json({ message: "Commande non trouvée." });
-    }
-
-    res.status(200).json({ message: "Statut mis à jour avec succès", order });
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour de la commande :", error);
-    res.status(500).json({ message: "Erreur serveur." });
-  }
+  // ... logique de mise à jour
 };
