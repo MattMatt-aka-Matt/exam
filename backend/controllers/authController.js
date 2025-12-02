@@ -66,7 +66,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// Ajouter ces fonctions à la fin du fichier
+
 
 exports.deleteAccount = async (req, res) => {
   try {
