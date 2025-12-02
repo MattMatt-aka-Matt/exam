@@ -10,7 +10,7 @@ const Order = () => {
     useCart(); // Récupérer le contenu du panier à partir du contexte
   // Naviguer vers la page de commande
   const handleShippingPage = () => {
-    navigate("/shipping_payment");
+    navigate("/shipping-payment");
   };
 
   const handleSubmit = async (e) => {

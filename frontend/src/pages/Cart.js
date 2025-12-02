@@ -37,7 +37,7 @@ const Cart = () => {
 
   // Naviguer vers la page de commande
   const handleSubmitOrder = () => {
-    navigate('/shipping_payment');
+    navigate('/shipping-payment');
   };
 
   return (
