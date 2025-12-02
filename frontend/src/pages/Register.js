@@ -12,6 +12,8 @@ const Register = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -22,7 +24,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/auth/register', formData);
+      await axios.post(`${API_URL}/api/auth/register`, formData);
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
       navigate('/login');
     } catch (err) {
