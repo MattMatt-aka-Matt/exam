@@ -38,7 +38,6 @@ const Navbar = () => {
           
           {token ? (
             <>
-              <Link to="/order" className="hover:underline">Commandes</Link>
               <Link to="/profile" className="hover:underline">Profil</Link>
               {role === 'admin' && (
                 <Link to="/admin" className="hover:underline">Admin</Link>
